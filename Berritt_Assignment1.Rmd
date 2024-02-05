@@ -1,0 +1,117 @@
+---
+title: 'Berritt: Assignment 1'
+author: 'Will Berritt'
+output: html_document
+date: "2024-02-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction:
+
+Interested in learning more about the predictive abilities of AI in sports, this [article](https://fivethirtyeight.com/features/how-our-2022-world-cup-predictions-work/) discusses the probabilities of teams progressing through the World Cup given their Soccer Power Index (SPI) ratings. Looking at the relationship between SPI and tournament performance can help inform the value of this metric.
+
+### Read in CSV
+```{r CSV}
+# Read in CSV and assign it to data frame 'x'
+x <- read.csv(url("https://projects.fivethirtyeight.com/soccer-api/international/2022/wc_matches.csv"))
+head(x)
+```
+
+### Check and fix and problematic data types
+```{r Deal with Date}
+# Check data classes
+lapply(x, class)
+
+# Change date column data type to date
+x$date <- as.Date(x$date)
+
+# Confirm update
+class(x$date)
+```
+
+### Change column names as needed
+```{r columns}
+# Rename columns
+colnames(x)[colnames(x) == "spi1"] <- "team1_power_index"
+colnames(x)[colnames(x) == "spi2"] <- "team2_power_index"
+colnames(x)[colnames(x) == "prob1"] <- "team1_win_prob"
+colnames(x)[colnames(x) == "prob2"] <- "team2_win_prob"
+colnames(x)[colnames(x) == "proj_score1"] <- "team1_proj_score"
+colnames(x)[colnames(x) == "proj_score2"] <- "team2_proj_score"
+colnames(x)[colnames(x) == "score1"] <- "team1_score"
+colnames(x)[colnames(x) == "score2"] <- "team2_score"
+colnames(x)[colnames(x) == "xg1"] <- "team1_expected_goals"
+colnames(x)[colnames(x) == "xg2"] <- "team2_expected_goals"
+colnames(x)[colnames(x) == "nsxg1"] <- "non_shot_team1_expected_goals"
+colnames(x)[colnames(x) == "nsxg2"] <- "non_shot_team2_expected_goals"
+```
+
+### Create 'Stage' column for missing information
+```{r stage}
+# Create 'Stage' column based on the dates in which the games occurred
+x$stage <- ifelse(x$date < as.Date("2022-12-03"), 'Group Stage',
+           ifelse(x$date >= as.Date("2022-12-03") & x$date < as.Date("2022-12-09"), 'Round of 16',
+           ifelse(x$date >= as.Date("2022-12-09") & x$date < as.Date("2022-12-13"), 'Quarterfinals',
+           ifelse(x$date >= as.Date("2022-12-13") & x$date < as.Date("2022-12-17"), 'Semifinals',
+           ifelse(x$date == as.Date("2022-12-18"), 'Finals', '3rd Place')))))
+
+head(x[, c('date', "team1", "team2", 'team1_score', 'team2_score', 'stage')])    
+```
+
+### Create 'Result' based on the scores of each team
+```{r result}
+# Create 'Result' column based on the dates in which the games occurred
+x$result <- ifelse(x$team1_score > x$team2_score, paste(x$team1, 'beats', x$team2, x$team1_score, '-', x$team2_score, sep = ' '),
+            ifelse(x$team2_score > x$team1_score, paste(x$team2, 'beats', x$team1, x$team2_score, '-', x$team1_score, sep = ' '),
+            ifelse(x$team2_score == x$team1_score & x$date < as.Date("2022-12-03"), paste(x$team1, 'and', x$team2, 'tie', x$team1_score, '-', x$team2_score, sep = ' '), paste(x$team1, 'tied', x$team2, x$team1_score, '-', x$team2_score, 'in regular time, heading to ET', sep = ' '))))
+
+head(x[, c('date', "team1", "team2", 'team1_score', 'team2_score', 'stage', 'result')])
+```
+
+### Create subset Data Frame with new columns and column names
+```{r}
+# Create new df with specified columns
+final_df <- (x[, c("date",'stage', "team1", "team2", 'team1_power_index', 'team2_power_index', 'team1_expected_goals', 'team2_expected_goals', 'result')])
+head(final_df)
+```
+
+### Extra Analyses
+Which game had the biggest winning margin? Which team won and what was the score?
+```{r}
+# Store the absolute values of the game margins
+difference <- abs(x$team1_score - x$team2_score)
+
+# Identify largest absolute value
+largest_margin <- which.max(difference)
+
+# Locate the row in which the largest margin exists
+big_diff <- x[largest_margin,]
+
+# Create conditional logic to concatenate result and tell us where the biggest whooping was
+big_diff$result <- ifelse(big_diff$team1_score > big_diff$team2_score, paste(big_diff$team1, 'whooped', big_diff$team2, big_diff$team1_score, '-', big_diff$team2_score), paste(big_diff$team2, 'whooped', big_diff$team1, big_diff$team2_score, '-', big_diff$score1))
+print(big_diff$result)
+```
+
+What does the relationship between the difference in Soccer Power Index ratings and the difference in scores look like?
+```{r}
+# Calculate absolute differeence
+x$power_index_difference <- abs(x$team1_power_index - x$team2_power_index)
+x$score_difference <- abs(x$team1_score - x$team2_score)
+
+# Plot the differences
+plot(x$power_index_difference, x$score_difference,
+     xlab = "Power Index Difference",
+     ylab = "Score Difference",
+     main = "Relationship Between Winning Margin and SPI Difference")
+
+# Add a line of best fit
+fit <- lm(score_difference ~ power_index_difference, data = x)
+abline(fit, col = "red")
+```
+
+## Conclusion:
+
+The final visualization, perhaps being the most informative, is still lacking the amount of data needed to feel confident in the value of the SPI metric. Early indiciation are promising but I would like to have more data from previous tournaments or World Cups and see how the trendline changes (or doesn't). Given more time and resources, more advanced metrics using expected goals and other ways of determining a teams likelihood of success would need to be tested in comparison to the SPI.
