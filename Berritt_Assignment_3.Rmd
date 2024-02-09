@@ -1,0 +1,93 @@
+---
+title: "Berritt_Assignment_3"
+output: html_document
+author: Will Berritt
+date: "2024-02-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction: String operations and Regexp are important assets when it comes to finding relevant data. Using these features can seriously enhance one's efficiency in any sort of Engineering, Analytical or Data Science problems.
+
+
+### 1. Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset [https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/], provide code that identifies the majors that contain either "DATA" or "STATISTICS"
+```{r, results='hide'}
+# Load packages
+library(tidyverse)
+```
+
+```{r Problem 1}
+# Read data
+x <- read.csv("/Users/williamberritt/Downloads/CUNY/majors-list.csv")
+
+#Create DF with relevant Majors
+statdata_majors <- str_view(x$Major, "STATISTICS|DATA")
+print(statdata_majors)
+```
+
+
+### 2. Write code that transforms the data below:
+#[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange"
+#[5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+#[9] "elderberry"   "lime"         "lychee"       "mulberry"    
+#[13] "olive"        "salal berry"
+#Into a format like this:
+#c("bell pepper", "bilberry", "blackberry", "blood orange", "blueberry", "cantaloupe", "chili pepper", "cloudberry", "elderberry", "lime", "lychee", "mulberry", "olive", "salal berry")
+```{r}
+# Create DF with data and review
+df1 <- c("bell pepper", "bilberry", "blackberry", "blood orange",
+                  "blueberry", "cantaloupe", "chili pepper", "cloudberry",
+                  "elderberry", "lime", "lychee", "mulberry", "olive", "salal berry")
+
+df1
+```
+```{r}
+# Perform operation to change into desired string
+str_view(paste('c(', '"', str_flatten(df1, '", "'), '"', ')', sep=''))
+```
+
+
+### 3 Describe, in words, what these expressions will match:
+
+Expression 1: (.)\1\1 
+
+This is a regexp that represents a pattern where any given letter is repeated 3 times consecutively
+
+Expression 2: "(.)(.)\\2\\1" 
+
+This is a string that represents a regexp which takes 2 characters, repeats the second character then repeats the first one and creates a symmetry
+
+Expression 3: "(.).\\1.\\1" 
+
+This is a string that represents a regexp which takes a character, allows any single character to follow, repeats the original character, allows any single character to follow once more then repeats the original character one last time
+
+Expression 4: (..)\1 
+
+This is a regexp that represents a pattern where any given set of two letters is repeated immediately
+
+Expression 5: "(.)(.)(.).*\\3\\2\\1" 
+
+This is a string that represents a regexp which takes 3 characters, allows for any number of characters to follow before flipping around and repeating
+
+
+### 4 Construct regular expressions to match words that:
+Challenge 1: Start and end with the same character.
+
+^(.).*\1$
+
+Challenge 2: Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.)
+
+(..).*\1
+
+Challenge 3: Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.)
+
+(.).*\1.*\1
+
+
+## Conclusion: Pattern detection and matching are very effective ways to find specific pieces of data.
+
+
+
+
