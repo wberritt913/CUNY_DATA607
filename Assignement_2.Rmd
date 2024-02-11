@@ -1,0 +1,48 @@
+---
+title: "Assignment 2"
+output: html_document
+author: Will Berritt
+date: "2024-02-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intro: Tasked with gathering movie ratings for my imaginary friends, I took their responses and wrote them into a table using SQL. After connecting to the SQL database, I removed the null values from the ratings table.
+
+#### Connecting to the DB in R
+```{r connect}
+# Load libraries
+library('DBI')
+library('RMySQL')
+
+# Enter parameters and connect to SQL DB in R
+mydb <- dbConnect(MySQL(), user='william.berritt09', password='southdrive7', dbname='william.berritt09', host='cunydata607sql.mysql.database.azure.com')
+
+# Preview tables in my DB
+dbListTables(mydb)
+```
+
+#### Create data frame and preview it
+```{r dataframe}
+# Query data from table into df1
+df1 <- dbGetQuery(mydb,'select * from movies')
+
+# Preview df1
+print(df1)
+```
+
+#### Missing data strategy
+```{r nulls}
+# Remove null values
+no_null_df <- na.omit(df1)
+
+# Preview new data frame
+no_null_df
+
+# How many nulls are there?
+paste('There are ', nrow(df1)-nrow(no_null_df), ' rows with NULL values in this data set', sep='')
+```
+
+## Conclusion: There are a number of reasons you may want to remove Null values. In this case, doing analyses with missing data can negatively impact the accuracy of your analysis as the data is techincally incomplete. Another reason is null values can introduce biases. If the missing data is not random and instead part of a pattern, exlcuding the Nulls can reduce bias.
