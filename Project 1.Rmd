@@ -1,0 +1,154 @@
+---
+title: "Project 1"
+output: html_document
+author: 'Will Berritt'
+date: "2024-02-17"
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+## R Markdown
+
+### Intro: Given a txt block of data the contains chess tournament results, the objective is to extract different pieces of information using pattern matching and create a new table (and CSV) that contains only specific and relevant pieces of information.
+
+##### Import Packages
+```{r}
+# Packages
+library(dplyr)
+library(stringr)
+```
+
+
+##### Create DF with the txt file (uploaded to Github)
+```{r read}
+# Read txt file into data frame in R
+txt_url <- "https://raw.githubusercontent.com/wberritt913/CUNY_DATA607/main/tournamentinfo.txt"
+df1 <- read.table(url(txt_url), header = TRUE, sep = '\n')
+
+# Check the dimensions and preview the data
+dim(df1)
+head(df1, 30)
+```
+
+
+##### Extract player names
+```{r}
+# Pattern match to extract the player names and create a data frame containing only their names
+player_info <- data.frame(value=unlist(str_extract_all(toupper(df1), '[A-Z]+\\s[A-Z]+\\s[A-Z]*\\s?.?[A-Z]*')))
+player_info <- player_info %>% slice(-1:-2)
+player_info$value <- trimws(player_info$value)
+head(player_info, 15)
+```
+
+
+##### Extract player states
+```{r}
+# Pattern match to extract the player states and create a data frame containing only their states
+states_df <- data.frame(value=unlist(str_extract_all(toupper(df1), '[^A-Z]\\s[A-Z][A-Z]\\s')))
+states_df$value <- trimws(states_df$value)
+# Preview
+head(states_df, 15)
+```
+
+
+
+##### Extract player total points
+```{r}
+# Pattern match to extract the player total points and create a data frame containing only their total points
+total_points <- data.frame(value = unlist(points <- str_extract_all(toupper(df1), '[0-9]\\.[0-9]')))
+total_points$value <- trimws(total_points$value)
+head(total_points, 15)
+```
+
+
+##### Extract player ratings before + fix class
+```{r}
+# Pattern match to extract the player player ratings before and create a data frame containing only their player ratings before and check class
+p_rating_before <- data.frame(value = unlist(str_extract_all(data.frame(value = unlist(str_extract_all(toupper(df1), '(:\\s\\s?[0-9])[0-9][0-9]?.?[0-9]?[0-9]?'))), '[0-9][0-9][0-9][0-9]?')))
+class(p_rating_before$value)
+# Change class
+p_rating_before$value <- as.numeric(gsub(",", "", p_rating_before$value))
+head(p_rating_before, 15)
+```
+
+
+##### Extract opponents' ratings
+```{r}
+# Pattern match to extract the player opponents' ratings and create a data frame containing only their opponents' ratings
+opponents_df <- str_extract_all(str_extract_all(str_extract_all(str_extract_all(df1, '\\|...............................................\\|'), '\\|[0-9]..............................................\\|'), '[A-Z]....\\|'), '..\\|')
+opponents_df <- data.frame(value = unlist(opponents_df))
+opponents_df$value <- gsub("\\|", "", opponents_df$value)
+colnames(opponents_df)[colnames(opponents_df) == "value"] <- "index"
+opponents_df$index <- as.numeric(opponents_df$index)
+head(opponents_df, 15)
+```
+
+
+##### Create main data frame
+```{r}
+# Combine all data frames into one data frame (keeping player_info as base data frame)
+player_info$states <- states_df
+player_info$total_points <- total_points
+player_info$p_rating_before <- p_rating_before
+player_info$index <- 1:nrow(player_info)
+head(player_info, 15)
+```
+
+
+
+##### Join opponents' rating data to main data frame
+```{r}
+# Join the opponents data frame on the index
+df3 <- left_join(opponents_df, player_info, by = 'index')
+head(df3, 15)
+```
+
+
+##### Find average rating for each player's opponents
+```{r}
+# Get average of every 7 rows to calculate opponent average player rating before
+groupings <- df3$p_rating_before %>%
+  group_by(group = (row_number() - 1) %/% 7) 
+averages <- groupings %>%
+  summarise(avg_p_rating_before = round(mean(value, na.rm = TRUE)))
+head(averages, 15)
+```
+
+
+
+##### Create new final data frame
+```{r}
+# Add the average to the main data frame and remove the index common key
+player_info$average_opponent_rating <- averages$avg_p_rating_before
+player_info <- player_info %>% select(-index)
+player_data <- player_info
+player_data
+```
+
+
+##### Check classes for export - fix problematic classes
+```{r}
+# Change the column classes
+lapply(player_data, class)
+# Change column classes + names to create final data frame
+player_data$states <- as.character(player_data$states$value)
+player_data$total_points <- as.numeric(player_data$total_points$value)
+player_data$p_rating_before <- as.numeric(player_data$p_rating_before$value)
+player_data <- player_data[, c("value", "states", "total_points", "p_rating_before", "average_opponent_rating")]
+# Check class again
+lapply(player_data, class)
+# Rename value column
+colnames(player_data)[colnames(player_data) == "value"] <- "name"
+```
+
+##### Create CSV
+```{r}
+# Create CSV
+write.csv(player_data, "player_data_new1.csv", row.names = FALSE, quote = FALSE)
+```
+
+### Conclusion: Pattern matching was originally difficult as I was trying to use one pattern to extract all the relevant info. Later realizing it may make more sense to layer patten matching over each other to iteratively extract the data. The appending of the data frames was also tricky. It's important to verify the details of the data frames before combining them to ensure the final data frame is functional and contains the relevant information. This project is a strong testament the value of pattern matching and how it can be applied.
+
