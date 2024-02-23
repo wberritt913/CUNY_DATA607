@@ -1,0 +1,101 @@
+---
+title: "Assignment 4"
+output: html_document
+author: 'Will Berritt'
+date: "2024-02-23"
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intro: Given a data set containing untidy flight-arrival-delay data, the task was to perform data frame operations to create a clean or 'tidy' data frame that can be further explored for insights.
+
+#### Read CSV
+```{r, message=FALSE}
+# Import packages
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(tidyr)
+# Read CSV and load into DF1
+df1 <- read.csv("/Users/williamberritt/Downloads/assignment_4.csv", na.strings=c("","NA")) 
+df1 
+```
+#### Check classes to ensure smooth data frame operations. Adjust any classes that need to be changed.
+```{r}
+#Check Classes
+lapply(df1, class)
+# Update different classes
+df1$Los.Angeles <- as.character(df1$Los.Angeles)
+df1$San.Diego <- as.character(df1$San.Diego)
+df1$San.Francisco <- as.character(df1$San.Francisco)
+```
+#### Hard code in data for the purpose of this exercise. (Given a larger data set and more time, I would've developed a programmatic logic to iteratively add in each city)
+```{r}
+# Input data
+df1[2,'X'] <- 'ALASKA'
+df1[5,'X'] <- 'AM WEST'
+```
+#### Pivot table
+```{r}
+# Pivot the table 
+df1 <- df1 |> pivot_longer(cols = !(X:X.1),
+                   names_to = 'city',
+                   values_to ='value',
+                   values_drop_na = TRUE)
+# Check classes
+lapply(df1, class)
+```
+#### Perform text operations to make data more readable and prepared for analysis
+```{r}
+# Remove . from cities and , from value
+df1$city <- str_replace(df1$city, "\\.", " ")
+df1$value <- str_replace(df1$value, ",", "")
+df1$value <- as.numeric(df1$value)
+# Preview changes
+df1
+```
+#### Create a subset of only delayed flights
+```{r}
+# Subset where X.1 = delayed
+df_delayed = subset(df1, X.1 == 'delayed')
+```
+#### Create a data frame that has a new column with total flights for each airline and each city
+```{r}
+# Aggregate the indivdual flight values by city and airline
+df_total_flights <- df1 |> group_by(X, city) |> summarize(total_flights = sum(value))
+```
+#### Join data frames to include both total flights and number of delayed flights
+```{r}
+# Left join where dftf.X = dfd.X and dftf.city=dfd.city
+df_summarize <- left_join(df_total_flights, df_delayed, by=c('X', 'city'))
+# Preview
+df_summarize
+```
+#### Rename columns
+```{r}
+# Rename columns
+colnames(df_summarize) <- c("airline", "city", 'total_flights', 'status', 'value')
+```
+
+#### Create delayed flights per 100 column dividing delayed flights by total flights
+```{r}
+# Check classes of new table
+lapply(df_summarize, class)
+
+# Create new delayed flights per 100 column and order by city desc
+df_summarize <- df_summarize |> mutate(delayed_flights_per_100 = value/total_flights*100)
+df_summarize <- df_summarize[order(df_summarize$city), ]
+
+# Preview
+df_summarize
+```
+#### Create grouped bar chart so show comparison between delays for each airline + city
+```{r}
+# Plot grouped bar chart to see differences between airlines in cities
+ggplot(df_summarize, aes(fill=airline, y=delayed_flights_per_100, x=city)) + 
+  geom_bar(position='dodge', stat='identity')
+```
+
+## Conclusion: Don't fly AM West to any of these cities unless you have to! Not actually - there are many different factors when assessing the value of a flight like flight/airline quality, price, etc. Also important to consider there may be biases in this representation. For example, if AM West only has flights that are delayed around the holidays and otherwise runs more efficiently than Alaska, that would be a critical piece of information that should be researched.
