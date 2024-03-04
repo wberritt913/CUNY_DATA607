@@ -1,0 +1,197 @@
+---
+title: "Project 2: Migration"
+output: html_document
+author: 'Will Berritt'
+date: "2024-03-04"
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# # Introduction: This data set includes migration data data broken out by year and country. I aimed to analyze a few different aspects of this data:
+1. Which countries have had the largest inflow of people? Which countries have had the most people leave?
+2. Is there a realtionship between poverty and migration rates?
+3. If we control for population growth, what do the relative migration rates look like?
+4. What countries are leading in absolute migration? Broken out by decade?
+With these questions in mind, I began working with and manipulating the data to extract these insights.
+
+#### Load Packages
+```{r, message=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(ggrepel)
+```
+
+#### Migration: Read Data Set number 1 and pivot the data
+```{r, message=FALSE}
+# Read CSV file, skip 3 rows, remove 'X' column
+df1 <- read.csv("/Users/williamberritt/Downloads/API_SM/API_SM.POP.NETM_DS2_en_csv_v2_105.csv", header = TRUE, skip = 3) |> subset(select = -c(X))
+
+# Reshape data from wide to long format using pivot_longer
+df1 <- df1 |> pivot_longer(cols = (X1960:X2022), names_to = 'year', values_to ='value')
+
+# Display first few rows of the reshaped data frame
+head(df1)
+```
+
+#### Left Join with list of countries to remove all none country entities like continents, middle class, etc.
+```{r, message=FALSE}
+# Calculate total migration by country code
+migration_by_country_code <- df1 |> 
+  group_by(Country.Name) |> 
+  summarize(total_migration = sum(value))
+
+# Rename columns
+colnames(migration_by_country_code) <- c("country", "total_migration")
+
+# List of country names
+country_names <- c("Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe")
+
+# Create a data frame with country names
+countries_df <- data.frame(country = country_names)
+
+# Merge country names with migration data and remove rows with missing migration data
+countries_only <- na.omit(left_join(countries_df, migration_by_country_code, by='country'))
+```
+
+#### Create data frames that have the countries with most amount of people coming or going
+```{r, message=FALSE}
+# Extract the top 5 countries with the highest migration influx
+top_5_highest_influx <- head(countries_only[order(-countries_only$total_migration),])
+top_5_highest_influx
+
+# Extract the top 5 countries with the highest migration exodus
+top_5_highest_exodus <- head(countries_only[order(countries_only$total_migration),])
+top_5_highest_exodus
+```
+
+#### Read poverty data set
+```{r, message=FALSE}
+# Read Poverty Data Set
+poverty <- read.csv("/Users/williamberritt/Downloads/poverty-rate-by-country-2024.csv")
+head(poverty)
+```
+
+#### Merge poverty data with migration numbers to see relationship between migration and poverty
+```{r, message=FALSE}
+# Merge country names with poverty data
+countries_poverty <- left_join(countries_df, poverty, by='country')
+
+# Select relevant columns and remove rows with missing data
+countries_poverty <- subset(countries_poverty, select = c('country', 'PovertyRateValue'))
+countries_poverty <- na.omit(countries_poverty)
+
+# Merge poverty data with migration data
+migration_vs_poverty <- left_join(countries_poverty, migration_by_country_code, by='country')
+
+# Remove rows with missing data
+migration_vs_poverty <- na.omit(migration_vs_poverty)
+
+# Extract variables for the plot
+x <- migration_vs_poverty$PovertyRateValue
+y <- migration_vs_poverty$total_migration
+
+# Create a scatter plot
+plot(x, y)
+```
+
+#### Plot cumulative migration by decade
+```{r, message=FALSE}
+# Create a copy of the original data frame
+df_decade <- df1
+
+# Add a column for the absolute value of migration
+df_decade$absolute_value <- abs(df_decade$value)
+
+# Extract the year from the 'year' column
+df_decade$year <- str_replace(df_decade$year, 'X', '')
+df_decade$year <- as.numeric(df_decade$year)
+
+# Create a new column for the decade
+df_decade$decade <- (floor(df_decade$year/10))*10
+
+# Rename columns
+colnames(df_decade) <- c("country", "code", 'indicate', 'indic_code', 'year', 'value', 'absolute_value', 'decade')
+
+# Merge country names with the updated data frame
+df_decade <- left_join(countries_df, df_decade, by='country')
+df_decade <- na.omit(df_decade)
+
+# Calculate total absolute migration by decade
+migration_by_decade <- df_decade |> group_by(decade) |> summarize(absolute_migration = sum(absolute_value))
+
+# Adjust the value for the decade 2020
+migration_by_decade$adj_value <- ifelse(migration_by_decade$decade == 2020, migration_by_decade$absolute_migration/.3, migration_by_decade$absolute_migration)
+
+# Create a plot
+plot(migration_by_decade$decade, migration_by_decade$adj_value)
+```
+
+#### Adjust migration for population growth and observe differences
+```{r, message=FALSE}
+# Read population data from CSV file
+pop_data <- read.csv('/Users/williamberritt/Documents/pop_data_proj2.csv')
+
+# Select relevant columns
+pop_data <- subset(pop_data, select = c('Year', 'World.Population'))
+
+# Create a new column for the decade
+pop_data$decade <- (floor(pop_data$Year/10))*10
+
+# Remove commas from population numbers and convert to numeric
+pop_data$World.Population <- str_replace_all(pop_data$World.Population, ',', '')
+pop_data$World.Population <- as.numeric(pop_data$World.Population)
+
+# Calculate average population by decade
+avg_pop_decade <- pop_data |> group_by(decade) |> summarize(avg_pop = mean(World.Population))
+
+# Merge average population and migration data by decade
+migration_with_pop <- left_join(avg_pop_decade, migration_by_decade, by='decade')
+
+# Calculate adjusted absolute migration rate per 100 people
+migration_with_pop$adj_absolute_migration_rate_per_100 <- (migration_with_pop$adj_value / migration_with_pop$avg_pop) * 100
+
+# Create a plot
+plot(migration_with_pop$decade, migration_with_pop$adj_absolute_migration_rate_per_100)
+```
+
+#### Group data by decade and see which countries had highest absolute movement
+```{r, message=FALSE}
+# Group data by country and decade, calculating absolute migration
+country_grouped_by_decade <- df_decade |> group_by(country, decade) |> summarize(absolute_migration = sum(absolute_value))
+
+# Merge with country names
+ONLY_country_grouped_by_decade <- left_join(countries_df, country_grouped_by_decade, by='country')
+ONLY_country_grouped_by_decade <- na.omit(ONLY_country_grouped_by_decade)
+
+# Subset data for each decade
+decade_analysis_1960 <- subset(ONLY_country_grouped_by_decade, decade == 1960)
+decade_analysis_1970 <- subset(ONLY_country_grouped_by_decade, decade == 1970)
+decade_analysis_1980 <- subset(ONLY_country_grouped_by_decade, decade == 1980)
+decade_analysis_1990 <- subset(ONLY_country_grouped_by_decade, decade == 1990)
+decade_analysis_2000 <- subset(ONLY_country_grouped_by_decade, decade == 2000)
+decade_analysis_2010 <- subset(ONLY_country_grouped_by_decade, decade == 2010)
+decade_analysis_2020 <- subset(ONLY_country_grouped_by_decade, decade == 2020)
+
+# Extract top 5 countries with the highest absolute migration for each decade
+decade_analysis_1960 <- head(decade_analysis_1960[order(-decade_analysis_1960$absolute_migration),])
+decade_analysis_1970 <- head(decade_analysis_1970[order(-decade_analysis_1970$absolute_migration),])
+decade_analysis_1980 <- head(decade_analysis_1980[order(-decade_analysis_1980$absolute_migration),])
+decade_analysis_1990 <- head(decade_analysis_1990[order(-decade_analysis_1990$absolute_migration),])
+decade_analysis_2000 <- head(decade_analysis_2000[order(-decade_analysis_2000$absolute_migration),])
+decade_analysis_2010 <- head(decade_analysis_2010[order(-decade_analysis_2010$absolute_migration),])
+decade_analysis_2020 <- head(decade_analysis_2020[order(-decade_analysis_2020$absolute_migration),])
+
+# Display results for 2020 and 1960
+decade_analysis_2020
+decade_analysis_1960
+```
+
+# Conclusion:
+1. United States has gained the most migrants by a wide margin since 1960. On the other hand, Bangladesh has seen the largest exodus since 1960, closely followed by Pakistan, China and Mexico.
+2. When looking at poverty rates and migration, we don't see much of a pattern outside of the fact that the countries experiencing the higest level of migration are lower in poverty.
+3. Controlling for population growth when assessing migration rate is critical! The numbers will show that migration has trended positive in the last 60 years but if you factor in population growth, you will see that in the last 20 years migration rates have dropped significantly.
+4. United states seems to always be in the mix for most migration across different decades. Interesting and relevant though, is Ukrain and Poland are leading this decade in absolute migration followed by USA, Pakistan, Saudi Arabia and Romania. Which all seems consistent with world events.

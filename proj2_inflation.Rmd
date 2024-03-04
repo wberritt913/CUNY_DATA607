@@ -1,0 +1,229 @@
+---
+title: "Project 2: Inflation"
+output: html_document
+author: 'Will Berritt'
+date: "2024-03-04"
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction: This data set includes global inflation data broken out by country. I aimed to analyze a few different aspects of this data:
+1. How do continents compare to one another in terms of their countries' aggregated inflation rates?
+2. Within each continent, which countries are having the highest inflation rates? Lowest inflation rates?
+3. What does the USA's inflation rate trends look like over time? What does it look like globally?
+With these questions in mind, I began working with and manipulating the data to extract these insights.
+
+#### Load Packages
+```{r, message=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(ggrepel)
+```
+
+#### Inflation: Read Data Set number 2 and pivot the data
+```{r, message=FALSE}
+# Read inflation data from CSV file
+df2 <- read.csv('/Users/williamberritt/Downloads/global_inflation_data.csv')
+
+# Reshape the data from wide to long format using pivot_longer
+pivot_df <- df2 |> pivot_longer(cols = (X1980:X2024),
+                               names_to = 'year',
+                               values_to ='value')
+
+# Display the resulting reshaped data frame
+head(pivot_df)
+```
+
+#### Prep the table to be ready for analysis
+```{r, message=FALSE}
+# Remove 'X' and convert 'year' to numeric
+pivot_df$year <- as.numeric(str_replace_all(pivot_df$year, 'X', ''))
+
+# Rename columns
+colnames(pivot_df) <- c('country', 'indicator', 'year', 'value')
+```
+
+#### Group countries together for analysis
+```{r, message=FALSE}
+# Create data frame that has continental data on each of the countries
+asian_countries <- c(
+  "Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", "Bhutan",
+  "British Indian Ocean Territory", "Brunei", "Cambodia", "China", "Cyprus",
+  "Egypt", "Georgia", "Hong Kong", "India", "Indonesia", "Iran", "Iraq",
+  "Israel", "Japan", "Jordan", "Kazakhstan", "Kuwait", "Kyrgyzstan", "Laos",
+  "Lebanon", "Macau", "Malaysia", "Maldives", "Mongolia", "Myanmar", "Nepal",
+  "North Korea", "Oman", "Pakistan", "Palestine", "Philippines", "Qatar",
+  "Russia", "Saudi Arabia", "Singapore", "South Korea", "Sri Lanka", "Syria",
+  "Taiwan", "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan",
+  "United Arab Emirates", "Uzbekistan", "Vietnam", "Yemen"
+)
+asian_countries_df <- data.frame(
+  country = asian_countries,
+  continent = rep("Asia", length(asian_countries))
+)
+african_countries <- c(
+  "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi",
+  "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros",
+  "Congo", "Democratic Republic of the Congo", "Djibouti", "Egypt",
+  "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon",
+  "Gambia, The", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast",
+  "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali",
+  "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger",
+  "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
+  "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan",
+  "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
+)
+african_countries_df <- data.frame(
+  country = african_countries,
+  continent = rep("Africa", length(african_countries))
+)
+european_countries <- c(
+  "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus",
+  "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus",
+  "Czechia", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany",
+  "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Latvia",
+  "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco",
+  "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland",
+  "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia",
+  "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine",
+  "United Kingdom", "Vatican City"
+)
+european_countries_df <- data.frame(
+  country = european_countries,
+  continent = rep("Europe", length(european_countries))
+)
+north_american_countries <- c(
+  "Canada",
+  "United States"
+)
+north_american_countries_df <- data.frame(
+  country = north_american_countries,
+  continent = rep("North America", length(north_american_countries))
+)
+central <- c(
+  "Costa Rica", "Cuba", "Dominica", "Dominican Republic", "El Salvador",
+  "Grenada", "Guatemala", "Haiti", "Honduras", "Jamaica", "Mexico",
+  "Nicaragua", "Panama", "Saint Kitts and Nevis", "Saint Lucia",
+  "Saint Vincent and the Grenadines", "Trinidad and Tobago", 
+  "Antigua and Barbuda", "Bahamas", "Barbados", "Belize"
+)
+central_df <- data.frame(
+  country = central,
+  continent = rep("Carribean_Central", length(central))
+)
+oceania_countries <- c(
+  "Australia", "Fiji", "Kiribati", "Marshall Islands",
+  "Micronesia", "Nauru", "New Zealand",
+  "Palau", "Papua New Guinea", "Samoa", "Solomon Islands", "Tonga",
+  "Tuvalu", "Vanuatu"
+)
+oceania_countries_df <- data.frame(
+  country = oceania_countries,
+  continent = rep("Oceania", length(oceania_countries))
+)
+south_american_countries <- c(
+  "Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador",
+  "Guyana", "Paraguay", "Peru", "Suriname", "Uruguay", "Venezuela"
+)
+south_american_countries_df <- data.frame(
+  country = south_american_countries,
+  continent = rep("South America", length(south_american_countries))
+)
+combined_df <- rbind(african_countries_df, asian_countries_df, european_countries_df, north_american_countries_df, oceania_countries_df, south_american_countries_df,central_df)
+```
+
+#### Look at median and mean inflation rates by grouping of countries
+```{r, message=FALSE}
+# Merge country-continent data with inflation data
+country_continent <- left_join(combined_df, pivot_df, by='country')
+country_continent <- na.omit(country_continent)
+
+# Calculate mean inflation by continent and year
+mean_by_continent_by_year <- country_continent |> group_by(continent, year) |> 
+  summarize(mean_inflation = mean(value)) |> 
+  group_by(continent) |> 
+  summarize(mean_continental_inflation = mean(mean_inflation))
+
+# Calculate median inflation by continent and year
+median_by_continent_by_year <- country_continent |> group_by(continent, year) |> 
+  summarize(median_inflation = median(value)) |> 
+  group_by(continent) |> 
+  summarize(median_continental_inflation = median(median_inflation))
+
+# Merge median and mean inflation data by continent
+median_mean_inf_continent <- left_join(median_by_continent_by_year, mean_by_continent_by_year, by='continent')
+
+# Display the results, ordered by median continental inflation
+median_mean_inf_continent[order(median_mean_inf_continent$median_continental_inflation),]
+
+```
+
+#### Look at the inflation leaderboard for each continent
+```{r, message=FALSE}
+# View each continents' inflation leaderboard
+african_mean <- subset(country_continent, continent == 'Africa') |> group_by(country) |> summarize(mean_value=mean(value))
+african_median <- subset(country_continent, continent == 'Africa') |> group_by(country) |> summarize(median_value=median(value))
+african_mean_median <- left_join(african_median, african_mean, by='country')
+african_mean_median[order(african_mean_median$median_value),]
+
+american_mean <- subset(country_continent, continent == 'North America') |> group_by(country) |> summarize(mean_value=mean(value))
+american_median <- subset(country_continent, continent == 'North America') |> group_by(country) |> summarize(median_value=median(value))
+american_mean_median <- left_join(american_median, american_mean, by='country')
+american_mean_median[order(american_mean_median$median_value),]
+
+european_mean <- subset(country_continent, continent == 'Europe') |> group_by(country) |> summarize(mean_value=mean(value))
+european_median <- subset(country_continent, continent == 'Europe') |> group_by(country) |> summarize(median_value=median(value))
+european_mean_median <- left_join(european_median, european_mean, by='country')
+european_mean_median[order(european_mean_median$median_value),]
+
+oceania_mean <- subset(country_continent, continent == 'Oceania') |> group_by(country) |> summarize(mean_value=mean(value))
+oceania_median <- subset(country_continent, continent == 'Oceania') |> group_by(country) |> summarize(median_value=median(value))
+oceania_mean_median <- left_join(oceania_median, oceania_mean, by='country')
+oceania_mean_median[order(oceania_mean_median$median_value),]
+
+south_american_mean <- subset(country_continent, continent == 'South America') |> group_by(country) |> summarize(mean_value=mean(value))
+south_american_median <- subset(country_continent, continent == 'South America') |> group_by(country) |> summarize(median_value=median(value))
+south_american_mean_median <- left_join(south_american_median, south_american_mean, by='country')
+south_american_mean_median[order(south_american_mean_median$median_value),]
+
+asian_mean <- subset(country_continent, continent == 'Asia') |> group_by(country) |> summarize(mean_value=mean(value))
+asian_median <- subset(country_continent, continent == 'Asia') |> group_by(country) |> summarize(median_value=median(value))
+asian_mean_median <- left_join(asian_median, asian_mean, by='country')
+african_mean_median[order(asian_mean_median$median_value),]
+
+central_mean <- subset(country_continent, continent == 'Carribean_Central') |> group_by(country) |> summarize(mean_value=mean(value))
+central_median <- subset(country_continent, continent == 'Carribean_Central') |> group_by(country) |> summarize(median_value=median(value))
+central_mean_median <- left_join(central_median, central_mean, by='country')
+central_mean_median[order(central_mean_median$median_value),]
+```
+
+#### Observe USA's inflation history, then look at global to see how they may trend together
+```{r, message=FALSE}
+# Subset data for the United States with value less than 10
+usa <- subset(pivot_df, country == 'United States' & value < 10)
+
+# Plot inflation data for the United States
+plot(usa$year, usa$value, type = 'l')
+
+# Create a copy of the original data frame
+global_df <- pivot_df
+
+# Remove rows with missing data
+global_df <- na.omit(global_df)
+
+# Calculate global median inflation by year
+global_inf <- global_df |> group_by(year) |> 
+  summarize(median_inflation_by_year = median(value))
+
+# Plot the global median inflation over the years
+plot(global_inf$year, global_inf$median_inflation_by_year, type = 'l')
+```
+
+# Conclusion:
+1. In regard to question one, North America (although only consisting of Canada and USA by my definition) has experienced the lowest mean and median inflation rate since 1980. In some cases we see extreme differences between the mean and median like in South America. This is an indication of outliers skewing the data.
+2. As expected, we see that there are countries with relatively low median values but have mean values over 500%! Nicaragua and Venezuela have some of the highest mean inflation rates in recent history.
+3. It's not easy to make out any macro trends on the USA inflation rate plot. There are peaks and dips and there seems to be some cyclicality but much less than compared to the global data

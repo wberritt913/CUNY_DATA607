@@ -1,0 +1,227 @@
+---
+title: "Project 2: NYC Transportation"
+output: html_document
+author: 'Will Berritt'
+date: "2024-03-04"
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction: This data set includes NYC transportation usership data broken out by year, beginning in March 2020, just before the pandemic. I aimed to analyze a few different aspects of this data:
+1. Which transportation methods had the greatest change in ridership from pre-pandemic to now?
+2. May a potential change in population over time effect our perception of these numbers?
+3. How do we compare now to pre-pandemic? Has our recovery to pre-pandemic rates plateaued?
+With these questions in mind, I began working with and manipulating the data to extract these insights.
+
+#### Load Packages
+```{r, message=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(ggrepel)
+```
+
+#### Ridership: Read Data Set number 3
+```{r, message=FALSE}
+# Read MTA daily ridership data from CSV file
+df3 <- read.csv('/Users/williamberritt/Downloads/MTA_Daily_Ridership_Data__Beginning_2020_20240228.csv')
+```
+
+#### Create separate pivoted data frames then join data back together
+```{r, message=FALSE}
+# Select relevant columns containing 'Estimated' and 'Total'
+rider_ship <- df3 %>%
+  select(Date, matches('Estimated|Total'))
+
+# Reshape data from wide to long format using pivot_longer
+rider_ship <- rider_ship |> pivot_longer(cols = (Subways..Total.Estimated.Ridership:Staten.Island.Railway..Total.Estimated.Ridership),
+                           names_to = 'transport_method',
+                           values_to ='value')
+
+# Display the first few rows of the reshaped data frame
+head(rider_ship)
+
+# Assign transport methods based on pattern matching
+rider_ship$transport_method <- ifelse(str_detect(rider_ship$transport_method, 'Subways'), 'subway', 
+                                       ifelse(str_detect(rider_ship$transport_method, 'Buses'), 'buses', 
+                                              ifelse(str_detect(rider_ship$transport_method, 'LIRR'), 'lirr', 
+                                                     ifelse(str_detect(rider_ship$transport_method, 'Metro'), 'mnr', 
+                                                            ifelse(str_detect(rider_ship$transport_method, 'Island'), 'staten',
+                                                                   ifelse(str_detect(rider_ship$transport_method, 'Access'), 'access_a_ride',
+                                                                          ifelse(str_detect(rider_ship$transport_method, 'Bridges'), 'bridges_tunnels', NA)))))))
+
+# Select relevant columns for pre-pandemic data
+pre_pandemic <- df3 %>%
+  select(Date, contains("Pre"))
+
+# Reshape pre-pandemic data from wide to long format using pivot_longer
+pre_pandemic <- pre_pandemic |> pivot_longer(cols = (Subways....of.Comparable.Pre.Pandemic.Day:Staten.Island.Railway....of.Comparable.Pre.Pandemic.Day),
+                                             names_to = 'transport_method',
+                                             values_to ='value')
+
+# Assign transport methods based on pattern matching
+pre_pandemic$transport_method <- ifelse(str_detect(pre_pandemic$transport_method, 'Subways'), 'subway', 
+                                       ifelse(str_detect(pre_pandemic$transport_method, 'Buses'), 'buses', 
+                                              ifelse(str_detect(pre_pandemic$transport_method, 'LIRR'), 'lirr', 
+                                                     ifelse(str_detect(pre_pandemic$transport_method, 'Metro'), 'mnr', 
+                                                            ifelse(str_detect(pre_pandemic$transport_method, 'Island'), 'staten',
+                                                                   ifelse(str_detect(pre_pandemic$transport_method, 'Access'), 'access_a_ride',
+                                                                          ifelse(str_detect(pre_pandemic$transport_method, 'Bridges'), 'bridges_tunnels', NA)))))))
+
+# Merge the two data frames on transport method and date
+base_df <- left_join(rider_ship, pre_pandemic, by=c('transport_method', 'Date'))
+base_df <- na.omit(base_df)
+
+# Display the first few rows of the merged data frame
+head(base_df)
+```
+
+#### Create new date variables and rename columns
+```{r, message=FALSE}
+# Rename columns
+colnames(base_df) <- c('date', 'transport_method', 'ridership', 'percent_change')
+
+# Convert 'date' to Date format
+base_df$date <- as.Date(base_df$date, format = "%m/%d/%Y")
+
+# Extract month, year, and day from 'date'
+base_df$month <- format(base_df$date, "%m")
+base_df$year <- format(base_df$date, "%Y")
+base_df$day <- weekdays(base_df$date)
+```
+
+#### What do trends in ridership look like for each method?
+```{r, message=FALSE}
+# Plot ridership by data for each method
+subway <- subset(base_df, transport_method=='subway')
+plot(subway$date, subway$ridership)
+
+buses <- subset(base_df, transport_method=='buses')
+plot(buses$date, buses$ridership)
+
+lirr <- subset(base_df, transport_method=='lirr')
+plot(lirr$date, lirr$ridership)
+
+mnr <- subset(base_df, transport_method=='mnr')
+plot(mnr$date, mnr$ridership)
+
+staten <- subset(base_df, transport_method=='staten')
+plot(staten$date, staten$ridership)
+
+access_a_ride <- subset(base_df, transport_method=='access_a_ride')
+plot(access_a_ride$date, access_a_ride$ridership)
+
+bridges_tunnels <- subset(base_df, transport_method=='bridges_tunnels')
+plot(bridges_tunnels$date, bridges_tunnels$ridership)
+```
+
+#### Create data frame with for total ridership grouped by month
+```{r, message=FALSE}
+# Group data by year and month, calculating total ridership
+total_ridership_by_month <- base_df |> group_by(year, month) |> 
+  summarize(total_ridership = sum(ridership))
+```
+
+#### Compare first Wednesday to average of last 3 Wednesdays (only using first Wednesday because rates started to decline quickly in March. The first Wednesday seems like the best proxy of pre-pandemic behavior)
+```{r, message=FALSE}
+# Select data for the first Wednesday of March 2020
+first_wednesday <- subset(base_df, day == 'Wednesday' & date == '2020-03-04')
+
+# Select data for all Wednesdays
+last_wednesday <- subset(base_df, day == 'Wednesday')
+last_wednesday <- tail(last_wednesday, 21)
+
+# Calculate average ridership for the last 3 Wednesdays by transport method
+avg_last_3_wed <- last_wednesday |> group_by(transport_method) |> 
+  summarize(avg_ridership_last_3 = mean(ridership))
+
+# Merge data for the first Wednesday and average ridership for the last 3 Wednesdays
+combined_wednesday <- left_join(first_wednesday, avg_last_3_wed, by = 'transport_method')
+
+# Calculate total difference and percentage difference in ridership
+combined_wednesday$total_difference <- combined_wednesday$ridership - combined_wednesday$avg_ridership_last_3
+combined_wednesday$percent_diff_wed <- (combined_wednesday$avg_ridership_last_3 - combined_wednesday$ridership) / combined_wednesday$ridership
+
+# Subset data for relevant columns
+change_in_ridership <- subset(combined_wednesday, select = c('transport_method', 'total_difference', 'percent_diff_wed'))
+
+# Display the results, ordered by total difference
+change_in_ridership[order(-change_in_ridership$total_difference),]
+
+# Display the results, ordered by percentage difference
+change_in_ridership[order(change_in_ridership$percent_diff_wed),]
+```
+
+#### Adjust by considering recent NYC population decline
+```{r, message=FALSE}
+# Create a data frame for NYC population
+nyc_pop <- data.frame(
+  year = c(2020, 2021, 2022, 2023, 2024),
+  population = c(8700000, 8500000, 8300000, 8200000, 8100000))
+
+# Convert 'year' to numeric type
+nyc_pop$year <- as.numeric(nyc_pop$year)
+
+# Convert 'year' to numeric type in the base data frame
+base_df$year <- as.numeric(base_df$year)
+
+# Merge base data frame with NYC population data
+ridership_population <- left_join(base_df, nyc_pop, by='year')
+
+# Group data by year, calculating yearly ridership and daily population sum
+ridership_population <- ridership_population |> group_by(year) |> 
+  summarize(yearly_ridership = sum(ridership), daily_pop_sum = sum(population))
+
+# Calculate the rate of use per 1000 people
+ridership_population$rate_of_use <- (ridership_population$yearly_ridership / ridership_population$daily_pop_sum) * 1000
+
+# Group data by year, calculating the mean ridership rate per 1000 people
+ridership_by_year_by_transport <- ridership_population |> group_by(year) |> 
+  summarize(ridership_rate_per_1000 = mean(rate_of_use))
+
+# Convert 'year' to numeric type
+ridership_by_year_by_transport$year <- as.numeric(ridership_by_year_by_transport$year)
+
+# Plot the ridership rate per 1000 people over the years
+plot(ridership_by_year_by_transport$year, ridership_by_year_by_transport$ridership_rate_per_1000)
+
+```
+
+#### Get ridership data grouped by year adjusted for population to see how different it is now vs pre pandemic
+```{r, message=FALSE}
+# Select data for the first week of March 2020
+first_week_march_rate <- subset(base_df, date %in% c('2020-03-01', '2020-03-02', '2020-03-03', '2020-03-04', '2020-03-05', '2020-03-06', '2020-03-07'))
+
+# Merge with NYC population data
+first_week_march_rate <- left_join(first_week_march_rate, nyc_pop, by='year')
+
+# Convert 'date' to numeric type
+first_week_march_rate$date <- as.numeric(first_week_march_rate$year)
+
+# Group data by year, calculating yearly ridership and daily population sum for the first week of March
+march_grouping <- first_week_march_rate |> group_by(year) |> 
+  summarize(ridership = sum(ridership), daily_pop_sum = sum(population))
+
+# Calculate the ridership rate per 1000 people for the first week of March
+march_grouping$ridership_rate_per_1000 <- (march_grouping$ridership / march_grouping$daily_pop_sum) * 1000
+
+# Subset relevant columns
+march_grouping <- subset(march_grouping, select=c('year', 'ridership_rate_per_1000'))
+
+# Combine data for the first week of March with the yearly ridership rate per 1000 people
+march_and_covid_ridership_pop_adjusted <- union_all(march_grouping, ridership_by_year_by_transport)
+
+# Adjust the ridership rate for the entire year by multiplying by 7 (number of days in a week)
+march_and_covid_ridership_pop_adjusted$ridership_rate_per_1000 <- march_and_covid_ridership_pop_adjusted$ridership_rate_per_1000 * 7
+
+# Display the adjusted data
+march_and_covid_ridership_pop_adjusted
+```
+
+# Conclusion:
+1. The subway took the greatest hit in terms of gross ridership but the Staten Island Railway lost the greatest portion of riders.
+2. Due to a nearly 7% decrease in NYC population, these numbers appear more significant than they really are. We can estimate that in theory, ridership should be 7% lesser today than pre-pandemic due to population decrease. However, even with population adjusted for, we are seeing a significantly greater drop than 7%.
+3. We seem to have plateaued in our recovery to pre-pandemic levels of ridership. Achieving a ridership rate of 61.8% in 2022, 68.4% in 2023 and now back down to 64.8% in 2024. The relatively small amounts of change in recent times leads me to believe that we are now in a steady state. It's also possible that 2024 data is skewed by other factors like season or weather or other circumstances.
