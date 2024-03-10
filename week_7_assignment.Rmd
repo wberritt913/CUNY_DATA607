@@ -1,0 +1,224 @@
+---
+title: "Week 7 Assignment"
+output: html_document
+date: "2024-03-10"
+author: 'Will Berritt'
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Libraries
+library(xml2)
+library(stringr)
+library(tidyverse)
+library(rvest)
+library(jsonlite)
+library(purrr)
+```
+
+# Intro: The goal was to create HTML, XML, and JSON files that I could then read from in R Studio. Using correct syntax in the different files is key to easily reading the relevant book data that I manually entered.
+
+### Extract HTML info
+```{r }
+# Read HTML file
+html <- read_html('https://github.com/wberritt913/CUNY_DATA607/blob/main/book_info.html')
+
+# Extract text content from specific HTML elements
+html_snip <- html |> html_elements("body") |> html_elements("p") |> html_elements("span") |> html_text2()
+
+# Extract information using regular expressions
+headers <- str_extract_all(html_snip, "<td>(.*?)</td>")
+filtered_headers <- headers[lengths(headers) > 0]
+
+# Extract titles, authors, and attributes using sequence and replacement
+title <- filtered_headers[seq(1, length(filtered_headers), by = 3)]
+title <- str_replace_all(title, "<td>(.*?)</td>", "\\1")
+
+authors <- filtered_headers[seq(2, length(filtered_headers), by = 3)]
+authors <- str_replace_all(authors, "<td>(.*?)</td>", "\\1")
+
+attributes <- filtered_headers[seq(3, length(filtered_headers), by = 3)]
+attributes <- str_replace_all(attributes, "<td>(.*?)</td>", "\\1")
+
+# Create a tibble (data frame) with the extracted information
+books_html <- tibble(
+  title = title,
+  authors = authors,
+  attributes = attributes
+)
+
+# Display the tibble
+books_html
+
+```
+
+### Extract XML info
+```{r, echo=FALSE}
+# Read XML file
+xml_file <- read_xml('https://raw.githubusercontent.com/wberritt913/CUNY_DATA607/main/week7xml.xml')
+
+# Extract text content from nested XML elements
+book <- xml_file |> xml_find_all("w:body") |> xml_find_all("wx:sect") |> xml_find_all("w:p") |> xml_find_all("w:r") |> xml_find_all("w:t") |> xml_text()
+
+# Use regular expressions to extract information
+code_snip <- str_view_all(book, "<books>(.*?)</books>")
+title <- str_extract_all(code_snip, "<title>(.*?)</title>")
+filtered_titles <- title[lengths(title) > 0]
+title <- str_replace_all(filtered_titles, "<title>(.*?)</title>", "\\1")
+
+authors <- str_extract_all(code_snip, "<authors>(.*?)</authors>")
+filtered_authors <- authors[lengths(authors) > 0]
+authors <- str_replace_all(filtered_authors, "<authors>(.*?)</authors>", "\\1")
+
+attributes <- str_extract_all(code_snip, "<attributes>(.*?)</attributes>")
+filtered_attributes <- attributes[lengths(attributes) > 0]
+attributes <- str_replace_all(filtered_attributes, "<attributes>(.*?)</attributes>", "\\1")
+
+# Create a tibble (data frame) with the extracted information
+books_xml <- tibble(
+  title = title,
+  authors = authors,
+  attributes = attributes
+)
+
+# Display the tibble
+books_xml
+
+```
+### Extract JSON info
+```{r}
+# Read JSON file
+json_data <- fromJSON("https://raw.githubusercontent.com/wberritt913/CUNY_DATA607/main/week7_json.json")
+
+# Display the content of the JSON data
+json_data
+
+```
+### I had trouble storing the HTML and XML codes in the correct files. I took the code and pasted them into different IDEs and it would return the intended tabular format but when saving the files and opening them, it would just open in the web browser as the actual code written. Here, I created 'files' to use the formats and commands as initially intended.
+```{r}
+# Write HTML content to file
+writeLines('
+<html>
+<head>
+    <title>Book Title</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>title</th>
+            <th>authors</th>
+            <th>attributes</th>
+        </tr>
+        <tr>
+            <td>The Lightning Thief</td>
+            <td>Rick Riordan</td>
+            <td>Fantasy, Greek mythology, Adventure</td>
+        </tr>
+        <tr>
+            <td>Old Yeller</td>
+            <td>Fred Gipson</td>
+            <td>Classic, Coming-of-age, Adventure</td>
+        </tr>
+        <tr>
+            <td>The Da Vinci Code</td>
+            <td>Dan Brown, Jeff Harding, Paul Michael</td>
+            <td>Mystery, Thriller, Conspiracy</td>
+        </tr>
+    </table>
+</body>
+</html>', "books.html")  # Write the HTML content to a file named "books.html"
+
+
+# Write XML content to file
+writeLines('
+<books>
+  <book>
+    <title>The Lightning Thief</title>
+    <authors>Rick Riordan</authors>
+    <attributes>Fantasy, Greek mythology, Adventure</attributes>
+  </book>
+  <book>
+    <title>Old Yeller</title>
+    <authors>Fred Gipson</authors>
+    <attributes>Classic, Coming-of-age, Adventure</attributes>
+  </book>
+  <book>
+    <title>The Da Vinci Code</title>
+    <authors>Dan Brown, Jeff Harding, Paul Michael</authors>
+    <attributes>Mystery, Thriller, Conspiracy</attributes>
+  </book>
+</books>', "books.xml")  # Write the XML content to a file named "books.xml"
+
+
+# Write JSON content to file
+writeLines('{
+  "books": [
+    {
+      "title": "The Lightning Thief",
+      "authors": ["Rick Riordan"],
+      "attributes": ["Fantasy", "Greek mythology", "Adventure"]
+    },
+    {
+      "title": "Old Yeller",
+      "authors": ["Fred Gipson"],
+      "attributes": ["Classic", "Coming-of-age", "Adventure"]
+    },
+    {
+      "title": "The Da Vinci Code",
+      "authors": ["Dan Brown", "Jeff Harding", "Paul Michael"],
+      "attributes": ["Mystery", "Thriller", "Conspiracy"]
+    }
+  ]
+}', "books.json")  # Write the JSON content to a file named "books.json"
+
+```
+### Extract HTML info pt. II
+```{r}
+# Read HTML file
+html <- read_html('books.html')
+
+# Extract 'table' element and convert to a data frame
+table <- html |> html_element("table") |> html_table()
+
+# Display the resulting data frame
+table
+```
+### Extract XML info pt. II
+```{r}
+# Read XML file
+xml <- read_xml('books.xml')
+
+# Extract 'book' elements from XML
+book <- xml |> xml_find_all("book")
+
+# Create a data frame (tibble) with extracted information
+xml_df <- tibble(
+  title = book |> xml_find_all("title") |> xml_text(),
+  authors = book |> xml_find_all("authors") |> xml_text(),
+  attributes = book |> xml_find_all("attributes") |> xml_text()
+)
+
+# Display the resulting data frame
+xml_df
+```
+### Extract JSON info pt. II
+```{r}
+# Read JSON file
+json_data <- fromJSON("books.json")
+
+# Create a data frame (tibble) with extracted information
+json_df <- tibble(
+  titles = json_data$books$title,
+  authors = sapply(json_data$books$authors, paste, collapse = ", "),
+  attributes = sapply(json_data$books$attributes, paste, collapse = ", ")
+)
+
+# Display the original JSON data
+json_data
+
+# Display the resulting data frame
+json_df
+
+```
+# Conclusion: The JSON data appears to be easily read in both cases and returns a table without much manipulation. The table appears different from the HTML and XML files but those also required more code to extract and formulate a table.
+
