@@ -1,0 +1,36 @@
+---
+title: "week_9_assignment"
+output: html_document
+author: 'Will Berritt'
+date: "2024-03-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Objective: Connect to NY Times API and extract then formulate data
+```{r, message=FALSE}
+# Load necessary libraries
+library(httr2)
+library(jsonlite)
+
+# Define the API endpoint URL
+API_URL <- "https://api.nytimes.com/svc/topstories/v2/world.json?api-key=m2scA9nuAXf7FFHykVAXSbRwnHozhIO2"
+
+# Make a GET request to the API endpoint
+api_call <- httr::GET(API_URL)
+
+# Extract the content of the API response
+head(api_call$content, 10)
+
+# Convert the raw content to a character string
+api_char <- rawToChar(api_call$content)
+
+# Parse the JSON content into a nested list
+api_json <- fromJSON(api_char, flatten=TRUE)
+
+# Convert the 'result' part of the JSON response to a data frame
+data <- as.data.frame(api_json$result)
+head(data, 10)
+```
+# Conclusion: The data looks good and useable. Could be helpful to clean the data frame up depending on analysis necessary but currently holds all relevant information.
