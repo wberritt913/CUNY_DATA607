@@ -1,0 +1,123 @@
+---
+title: "Week 10 Assignment"
+output: html_document
+author: 'Will Berritt'
+date: "2024-04-01"
+---
+
+# OBJECTIVE: Perform some sort of sentiment analysis on a group of text. I found a list of titles to run analysis on. Curious to see if I can associate a sentiment score to the titling of a specific author.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Load packages and create unnested data set
+```{r, message=FALSE}
+# Load packages
+library(gutenbergr)
+library(dplyr)
+library(tidytext)
+
+# Load Gutenberg metadata
+gute <- gutenberg_metadata
+
+# Tokenize titles
+gute_unnest <- gute |> unnest_tokens(word, title)
+head(gute_unnest, 20)
+```
+### Remove stop words and join with 'bing' sentiment lexicon
+```{r, message=FALSE}
+# Remove stop words
+gute_clean <- gute_unnest |> anti_join(stop_words)
+head(gute_clean, 20)
+
+# Join with sentiment lexicon
+sentiment_join <- gute_clean |> inner_join(get_sentiments('bing'))
+head(sentiment_join, 20)
+```
+### See how many distinct sentiments there are
+```{r, message=FALSE}
+# Count distinct sentiments
+n_distinct(sentiment_join$sentiment)
+```
+### Assign numerical scores to positive and negative sentiments
+```{r, message=FALSE}
+# Assign sentiment scores
+sentiment_w_score <- sentiment_join %>% 
+  mutate(sentiment_score = if_else(sentiment == 'positive', 1, -1))
+head(sentiment_w_score, 20)
+```
+### Remove nulls and create mean sentiment scores by author
+```{r, message=FALSE}
+# Remove NAs
+sentiment_w_score <- na.omit(sentiment_w_score)
+
+# Calculate average sentiment score by author
+mean_score_by_author <- sentiment_w_score |> group_by(author) |> 
+  summarize(avg_sentiment_score = mean(sentiment_score), count = n())
+head(mean_score_by_author, 20)
+```
+### Filter out to only authors with 50 or more titles
+```{r, message=FALSE}
+# Filter authors with at least 50 titles
+most_popular <- subset(mean_score_by_author, count >= 50)
+
+# Arrange by average sentiment score
+most_popular |> arrange(avg_sentiment_score)
+head(most_popular, 20)
+```
+### Instead of running sentiment analysis on total amount of text in the titles from different authors because it will skew to the longer titles - I want to group by title then by author so each title is weighed equally
+```{r, message=FALSE}
+# Calculate average sentiment score by Gutenberg ID
+new_sentiment_join <- sentiment_w_score |> group_by(gutenberg_id) |> 
+  summarize(avg_sentiment_score = mean(sentiment_score), count = n())
+head(new_sentiment_join, 20)
+```
+### Subset to verify there are scores between [-1,1]
+```{r, message=FALSE}
+# QA: Filter sentiment scores within range
+subset(new_sentiment_join, avg_sentiment_score > -1 & avg_sentiment_score < 1 & avg_sentiment_score != 0)
+```
+### Join data frames and omit nulls
+```{r, message=FALSE}
+# Left join with Gutenberg metadata
+new_df <- left_join(new_sentiment_join, gute, by = 'gutenberg_id')
+new_df$author <- na.omit(new_df$author)
+head(new_df, 20)
+```
+### Create mean score by author based on title sentiment score
+```{r, message=FALSE}
+# Calculate average title sentiment score by author
+average_title_by_author <- new_df |> group_by(author) |> 
+  summarize(title_sentiment_score = mean(avg_sentiment_score), count = n())
+head(average_title_by_author, 20)
+```
+### Filter only authors with 25+ titles
+```{r, message=FALSE}
+# Filter authors with at least 25 titles
+author_sentiment <- subset(average_title_by_author, count >= 25)
+
+# Arrange by title sentiment score
+author_sentiment |> arrange(title_sentiment_score)
+head(author_sentiment, 20)
+```
+### QA why this author is perfectly -1
+```{r, message=FALSE}
+# Subset Gutenberg metadata by specific author
+subset(gute, author == 'United States. Work Projects Administration')
+```
+### View most positive authors
+```{r, message=FALSE}
+# Arrange author sentiment in descending order
+author_sentiment |> arrange(desc(title_sentiment_score))
+head(author_sentiment, 20)
+```
+### QA why Weymouth is excatly 1
+```{r, message=FALSE}
+# Subset Gutenberg metadata by specific author
+subset(gute, author == 'Weymouth, Richard Francis')
+```
+
+# Conclusion: Interesting to see trends amongst authors. Generalizing a sentiment score to an author like Mark Twain is pretty cool and alludes to the power of programmatic sentiment analysis. An interesting project I thought of using a similar skill set would be to take media outlets and assign sentiment scores based on the article titles they publish - i.e. NY Times has an average score of -0.5, while The Economist has a sentiment score of 0.2 (these are not real values but just examples) and categorize as positive or 'happy' media outlets vs. negative or 'depressing' media outlets.
+
+### References: 
+### Robinson, David. 2016. gutenbergr: Download and Process Public Domain Works from Project Gutenberg. https://cran.rstudio.com/package=gutenbergr.
