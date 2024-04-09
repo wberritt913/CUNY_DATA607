@@ -1,0 +1,160 @@
+---
+title: "Week 11 Assignment"
+author: "Will Berritt"
+format: html
+editor: visual
+---
+
+SPOTIFY RECOMMENDATION ENGINE
+
+1.  Design analysis as described below.  Consider whether it makes sense for your selected recommender system to perform scenario design twice, once for the organization (e.g. Amazon.com) and once for the organization's customers.
+
+    1.  **Who are your target Users?**
+
+        1.  Spotify Users
+
+            1.  Members
+
+            2.  Free Members
+
+    2.  **What are their key goals?**
+
+        1.  Listen to specific music they likes
+
+        2.  Discover new music, artists, genres, podcast, authors and other audio experiences
+
+    3.  **How can you help them accomplish their goals?**
+
+        1.  Providing experiences that match their searches and streams very closely
+
+        2.  Expose them to new experiences that they will have a high probability of liking 
+
+2.  Attempt to reverse engineer what you can about the site, from the site interface and any available information that you can find on the Internet or elsewhere.
+
+    1.  **Content Filtering**
+
+        1.  Song profiles
+
+            1.  Length
+
+            2.  Beats per minute
+
+            3.  Sentiment
+
+                1.  Probably unnecessary but could be interesting
+
+            4.  Instruments
+
+            5.  Release year
+
+            6.  Song sentiment
+
+            7.  Melody
+
+            8.  Chords
+
+        2.  Artists
+
+            1.  Gender
+
+            2.  Age
+
+            3.  Race
+
+            4.  Nationality
+
+            5.  Location
+
+        3.  Genres
+
+            1.  Sub genres
+
+        4.  User history
+
+            1.  Previously listened to songs
+
+    2.  **Collaborative filtering**
+
+        1.  Users
+
+            1.  Macro trends
+
+            2.  Song matching
+
+                1.  If someone listens to one song what do they listen to next?
+
+                    1.  What do they listen to most?
+
+            3.  Artist matching
+
+                1.  If someone listens to an artist what other artists do they listen to
+
+    3.  **Process**
+
+        1.  Choose a song/artist/genre/podcast/author
+
+            1.  Store data
+
+                1.  Name
+
+                2.  Genre/topic
+
+                3.  Artist/author
+
+                4.  Length
+
+                5.  Melody
+
+                6.  Beats per minute
+
+                7.  Instruments
+
+                8.  Age
+
+                9.  Album
+
+                10. Gender of artist
+
+                11. Sub genre
+
+                    1.  Finding right size of genre categorization
+
+                    2.  How granular should the genre groupings be?
+
+                12. Song subject
+
+        2.  Find songs that match general criteria
+
+            1.  Optimization of finding 3 really strong matches vs 20 good matches
+
+3.  Include specific recommendations about how to improve the site's recommendation capabilities going forward. 
+
+    1.  **A hyper-tailored suggestion based on a favorite song broken out by genre**
+
+        1.  Top 5 songs that strongly match a song profile that the user has streamed \<5 times.
+
+        2.  I’ve personally been disappointed by how much a song’s radio may miss
+
+        3.  Song radio: Spotify will instantly curate a playlist for you based off one song
+
+            1.  Sometimes they’re great and sometimes they miss
+
+            2.  I’ve found they’re much better in certain genres than others
+
+    2.  **A location based playlist**
+
+        1.  ‘Here’s what people in your neighborhood/city are listening to’
+
+        2.  Community building
+
+        3.  Could be underlying similarities and interests that are discovered
+
+            1.  Maybe a song mentions a NYC restaurant and therefore preferred by New Yorkers because of relatability
+
+    3.  **Considering music that users do NOT like**
+
+        1.  What’re people skipping?
+
+            1.  Does someone like a long intro/short intro, loud start, soft start
+
+\
