@@ -1,0 +1,141 @@
+---
+title: "final_607_analysis"
+output: html_document
+date: "2024-05-10"
+author: 'Will Berritt'
+---
+# Motivation:
+## There's many discussions today about how the media influences the population and the amount of power media outlets have over peoples' anxiety, depression, and general mental health. The purpose of this research is to investigate a very small portion of what a real study may look like. The sentiment analyisis of news article titles may help propose theories for the recent shift in mental health crises. Do articles typically have a negative sentiment? Positive sentiment? Are there certain publishers with particularly negative scores or positive scores? How do they perform vs their peers? How has the average news article sentiment changed over time and what could that look like in juxtaposition to the mental health crises? This analysis scrapes the surface of what the the relationship could look like.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load Libraries
+```{r, message=FALSE}
+# Load libraries
+library(dplyr)  # Data manipulation
+library(anytime)  # Date/time conversion
+library(tidytext)  # Text mining
+library(ggplot2)  # Data visualization
+library(readr)
+```
+
+### Read CSV from API Call data frame
+```{r, message=FALSE}
+# URL of the CSV file
+file_url <- 'https://github.com/wberritt913/CUNY_DATA607/raw/main/combined_df_final_project.csv'
+
+# Read CSV into a data frame
+df <- read_csv(file_url)
+```
+
+### Change date from char to date and deduplicate dataset
+```{r, message=FALSE}
+# Data preprocessing
+colnames(df)
+df$publishedAt <- as.Date(anytime(df$publishedAt))
+unique(df$publishedAt)
+df <- df[!duplicated(df$description), ]
+dim(df)
+```
+
+### Unnest the titles of each article, remove stop words, get sentiment, then map scores to values
+```{r, message=FALSE}
+# Sentiment analysis on titles
+title_unnested <- df |> unnest_tokens(word, title)
+title_clean <- title_unnested |> anti_join(stop_words)
+sentiment_title <- title_clean |> inner_join(get_sentiments('bing'))
+head(sentiment_title, 20)
+title_sentiment_w_score <- sentiment_title %>%
+  mutate(sentiment_score = if_else(sentiment == 'positive', 1, -1))
+head(title_sentiment_w_score, 20)
+title_sentiment_w_score <- na.omit(title_sentiment_w_score)
+```
+
+### Find the average sentiment of all titles
+```{r, message=FALSE}
+# Average sentiment score by title
+mean_score_by_title <- title_sentiment_w_score |> group_by(description) |> 
+  summarize(avg_sentiment_score = mean(sentiment_score), count = n())
+head(mean_score_by_title, 20)
+```
+
+### Join original data frame back in to include other variables for analysis
+```{r, message=FALSE}
+# Merge sentiment scores with main dataframe
+new_df <- left_join(mean_score_by_title, df, by = 'description')
+new_df$weekday <- weekdays(as.Date(new_df$publishedAt))
+dim(new_df)
+mean(new_df$avg_sentiment_score)
+```
+
+### Find average sentiment grouped by the publisher of the article
+```{r, message=FALSE}
+# Average sentiment score by source
+mean_score_by_source <- new_df |> group_by(source) |> 
+  summarize(avg_sentiment_score = mean(avg_sentiment_score), count = n())
+head(mean_score_by_source, 20)
+```
+
+### Only take those sources with 3 or more articles and calculate weighted average
+```{r, message=FALSE}
+# Filter sources with sufficient data
+mean_score_by_source <- subset(mean_score_by_source, count >= 3)
+mean_score_by_source$weighted_amount <- mean_score_by_source$count/sum(mean_score_by_source$count)
+sum(mean_score_by_source$weighted_amount*mean_score_by_source$avg_sentiment_score)
+```
+
+### Create bar chart to show average sentiment score by source
+```{r, message=FALSE}
+# Visualization: Average sentiment score by source
+ggplot(mean_score_by_source, aes(x = source, y = avg_sentiment_score, fill = source)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Sentiment Score by Source",
+       x = "Source",
+       y = "Average Sentiment Score") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Look at sentiment score over time
+```{r, message=FALSE}
+# Average sentiment score over time
+mean_score_by_date <- new_df |> group_by(publishedAt) |> 
+  summarize(avg_sentiment_score = mean(avg_sentiment_score), count = n())
+head(mean_score_by_date, 20)
+```
+
+### Plot the line chart showing the change in average sentiment over time
+```{r, message=FALSE}
+# Visualization: Average sentiment score over time
+ggplot(mean_score_by_date, aes(x = publishedAt, y = avg_sentiment_score)) +
+  geom_line(stat = "identity") +
+  labs(title = "Average Sentiment Score Over Time",
+       x = "Date",
+       y = "Average Sentiment Score") +
+  theme_minimal()
+```
+
+### Take mean sentiment score by weekday to see if there's any specific day that puts out more positive news than others 
+```{r, message=FALSE}
+# Average sentiment score by weekday
+mean_score_by_weekday <- new_df |> group_by(weekday) |> 
+  summarize(avg_sentiment_score = mean(avg_sentiment_score), count = n())
+head(mean_score_by_weekday, 20)
+```
+
+### Plot means by weekday
+```{r, message=FALSE}
+# Visualization: Average sentiment score by weekday
+ggplot(mean_score_by_weekday, aes(x = weekday, y = avg_sentiment_score, fill = weekday)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Sentiment Score by Weekday",
+       x = "Weekday",
+       y = "Average Sentiment Score") +
+  theme_minimal()
+```
+
+# Conclusion:
+## The main takeaway here is that the data is not robust enough to extract meaningful insights. The API has a limited number of requests permitted per day, a limited time-frame in which data can be pulled from, and a limited number of results per request. This makes getting enough data to perform a meaningful analysis relatively expensive and not feasible in the context of this project. That said, if a more robust dataset was acquired, it would be easily passable through this script to see what the trends look like over time, between different sources, and overall average sentiments as well. Although insufficient data, this research does point towards a general negative sentiment in how our media either presents or selects stories to publish. Assuming there is a relationship between mental health and media sentiment, this research supports that the media is disproportionately negative and impacting the populations mental health - again acknowleding insufficient data. Another aspect to consider is how rudimentary this sentiment analysis model is. It does not consider phrases or proper nouns which can make up a large portion of tiles. It also does not offer a spectrum of sentiment. Only positive and negative, no neutral.
+
+## Here is a link to my API code that will allow you to filter the mean sentiment score for articles in a given date range: https://github.com/wberritt913/CUNY_DATA607/blob/main/final_proj_api.R
