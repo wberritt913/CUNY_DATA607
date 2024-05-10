@@ -1,0 +1,259 @@
+---
+title: "final_project_607_API_call"
+output: html_document
+date: "2024-05-10"
+name: 'Will Berritt'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Objective: Create a data frame with as many articles reasonably possible as permitted by the API.
+```{r}
+library(httr)
+library(jsonlite)
+library(dplyr)
+```
+
+```{r}
+# Make API calls
+apicall1 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-05-06&to=2024-05-06&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall2 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-05&to=2024-04-05&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall3 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-06&to=2024-04-06&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall4 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-07&to=2024-04-07&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall5 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-08&to=2024-04-08&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall6 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-09&to=2024-04-09&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall7 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-10&to=2024-04-10&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall8 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-11&to=2024-04-11&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall9 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-12&to=2024-04-12&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall10 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-13&to=2024-04-13&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall11 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-14&to=2024-04-14&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall12 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-15&to=2024-04-15&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall13 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-16&to=2024-04-16&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall14 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-17&to=2024-04-17&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall15 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-18&to=2024-04-18&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall16 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-19&to=2024-04-19&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall17 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-20&to=2024-04-20&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall18 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-21&to=2024-04-21&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall19 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-22&to=2024-04-22&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall20 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-23&to=2024-04-23&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall21 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-24&to=2024-04-24&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall22 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-25&to=2024-04-25&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall23 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-26&to=2024-04-26&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall24 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-27&to=2024-04-27&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall25 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-28&to=2024-04-28&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall26 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-29&to=2024-04-29&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall27 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-04-30&to=2024-04-30&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall28 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-05-01&to=2024-05-01&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall29 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-05-02&to=2024-05-02&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall30 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-05-03&to=2024-05-03&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall31 <- GET('https://newsapi.org/v2/everything?q="a"OR"the"&from=2024-05-04to=2024-05-04&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall32 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall33 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=entertainment&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall34 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=general&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall35 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=health&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall36 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=science&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall37 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=sports&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+apicall38 <- GET('https://newsapi.org/v2/top-headlines?country=us&category=technology&apiKey=1aa93e1bd87d492599e7c67c703a6f19')
+```
+
+
+```{r}
+# Convert JSON into usable data frame
+data38 = fromJSON(rawToChar(apicall38$content))
+data37 = fromJSON(rawToChar(apicall37$content))
+data36 = fromJSON(rawToChar(apicall36$content))
+data35 = fromJSON(rawToChar(apicall35$content))
+data34 = fromJSON(rawToChar(apicall34$content))
+data33 = fromJSON(rawToChar(apicall33$content))
+data32 = fromJSON(rawToChar(apicall32$content))
+data31 = fromJSON(rawToChar(apicall31$content))
+data32 = fromJSON(rawToChar(apicall32$content))
+data30 = fromJSON(rawToChar(apicall30$content))
+data29 = fromJSON(rawToChar(apicall31$content))
+data28 = fromJSON(rawToChar(apicall32$content))
+data27 = fromJSON(rawToChar(apicall30$content))
+data26 = fromJSON(rawToChar(apicall31$content))
+data25 = fromJSON(rawToChar(apicall32$content))
+data24 = fromJSON(rawToChar(apicall30$content))
+data23 = fromJSON(rawToChar(apicall31$content))
+data22 = fromJSON(rawToChar(apicall32$content))
+data21 = fromJSON(rawToChar(apicall30$content))
+data20 = fromJSON(rawToChar(apicall31$content))
+data19 = fromJSON(rawToChar(apicall32$content))
+data18 = fromJSON(rawToChar(apicall30$content))
+data17 = fromJSON(rawToChar(apicall31$content))
+data16 = fromJSON(rawToChar(apicall32$content))
+data15 = fromJSON(rawToChar(apicall30$content))
+data14 = fromJSON(rawToChar(apicall31$content))
+data13 = fromJSON(rawToChar(apicall32$content))
+data12 = fromJSON(rawToChar(apicall30$content))
+data11 = fromJSON(rawToChar(apicall31$content))
+data10 = fromJSON(rawToChar(apicall32$content))
+data9 = fromJSON(rawToChar(apicall30$content))
+data8 = fromJSON(rawToChar(apicall31$content))
+data7 = fromJSON(rawToChar(apicall32$content))
+data6 = fromJSON(rawToChar(apicall30$content))
+data5 = fromJSON(rawToChar(apicall31$content))
+data4 = fromJSON(rawToChar(apicall32$content))
+data3 = fromJSON(rawToChar(apicall30$content))
+data2 = fromJSON(rawToChar(apicall31$content))
+data1 = fromJSON(rawToChar(apicall32$content))
+```
+
+
+
+```{r}
+# Create articles data frame
+base_df31 <- data31$articles
+# Subset articles data frame
+base_df31 <- select(base_df31, source, author, title, description, publishedAt)
+# Change source data type to char by taking only 'name' column
+base_df31$source <- base_df31$source$name
+base_df32 <- data32$articles
+base_df32 <- select(base_df32, source, author, title, description, publishedAt)
+base_df32$source <- base_df32$source$name
+base_df30 <- data30$articles
+base_df30 <- select(base_df30, source, author, title, description, publishedAt)
+base_df30$source <- base_df30$source$name
+base_df29 <- data29$articles
+base_df29 <- select(base_df29, source, author, title, description, publishedAt)
+base_df29$source <- base_df29$source$name
+base_df28 <- data28$articles
+base_df28 <- select(base_df28, source, author, title, description, publishedAt)
+base_df28$source <- base_df28$source$name
+base_df27 <- data27$articles
+base_df27 <- select(base_df27, source, author, title, description, publishedAt)
+base_df27$source <- base_df27$source$name
+base_df26 <- data26$articles
+base_df26 <- select(base_df26, source, author, title, description, publishedAt)
+base_df26$source <- base_df26$source$name
+base_df25 <- data25$articles
+base_df25 <- select(base_df25, source, author, title, description, publishedAt)
+base_df25$source <- base_df25$source$name
+base_df24 <- data24$articles
+base_df24 <- select(base_df24, source, author, title, description, publishedAt)
+base_df24$source <- base_df24$source$name
+base_df23 <- data23$articles
+base_df23 <- select(base_df23, source, author, title, description, publishedAt)
+base_df23$source <- base_df23$source$name
+base_df22 <- data22$articles
+base_df22 <- select(base_df22, source, author, title, description, publishedAt)
+base_df22$source <- base_df22$source$name
+base_df21 <- data21$articles
+base_df21 <- select(base_df21, source, author, title, description, publishedAt)
+base_df21$source <- base_df21$source$name
+base_df20 <- data20$articles
+base_df20 <- select(base_df20, source, author, title, description, publishedAt)
+base_df20$source <- base_df20$source$name
+base_df19 <- data19$articles
+base_df19 <- select(base_df19, source, author, title, description, publishedAt)
+base_df19$source <- base_df19$source$name
+base_df18 <- data18$articles
+base_df18 <- select(base_df18, source, author, title, description, publishedAt)
+base_df18$source <- base_df18$source$name
+base_df19 <- data19$articles
+base_df19 <- select(base_df19, source, author, title, description, publishedAt)
+base_df19$source <- base_df19$source$name
+base_df18 <- data18$articles
+base_df18 <- select(base_df18, source, author, title, description, publishedAt)
+base_df18$source <- base_df18$source$name
+base_df17 <- data17$articles
+base_df17 <- select(base_df17, source, author, title, description, publishedAt)
+base_df17$source <- base_df17$source$name
+base_df16 <- data16$articles
+base_df16 <- select(base_df16, source, author, title, description, publishedAt)
+base_df16$source <- base_df16$source$name
+base_df15 <- data15$articles
+base_df15 <- select(base_df15, source, author, title, description, publishedAt)
+base_df15$source <- base_df15$source$name
+base_df14 <- data14$articles
+base_df14 <- select(base_df14, source, author, title, description, publishedAt)
+base_df14$source <- base_df14$source$name
+base_df13 <- data13$articles
+base_df13 <- select(base_df13, source, author, title, description, publishedAt)
+base_df13$source <- base_df13$source$name
+base_df12 <- data12$articles
+base_df12 <- select(base_df12, source, author, title, description, publishedAt)
+base_df12$source <- base_df12$source$name
+base_df11 <- data11$articles
+base_df11 <- select(base_df11, source, author, title, description, publishedAt)
+base_df11$source <- base_df11$source$name
+base_df10 <- data10$articles
+base_df10 <- select(base_df10, source, author, title, description, publishedAt)
+base_df10$source <- base_df10$source$name
+base_df9 <- data9$articles
+base_df9 <- select(base_df9, source, author, title, description, publishedAt)
+base_df9$source <- base_df9$source$name
+base_df8 <- data8$articles
+base_df8 <- select(base_df8, source, author, title, description, publishedAt)
+base_df8$source <- base_df8$source$name
+base_df7 <- data7$articles
+base_df7 <- select(base_df7, source, author, title, description, publishedAt)
+base_df7$source <- base_df7$source$name
+base_df6 <- data6$articles
+base_df6 <- select(base_df6, source, author, title, description, publishedAt)
+base_df6$source <- base_df6$source$name
+base_df5 <- data5$articles
+base_df5 <- select(base_df5, source, author, title, description, publishedAt)
+base_df5$source <- base_df5$source$name
+base_df4 <- data4$articles
+base_df4 <- select(base_df4, source, author, title, description, publishedAt)
+base_df4$source <- base_df4$source$name
+base_df3 <- data3$articles
+base_df3 <- select(base_df3, source, author, title, description, publishedAt)
+base_df3$source <- base_df3$source$name
+base_df2 <- data2$articles
+base_df2 <- select(base_df2, source, author, title, description, publishedAt)
+base_df2$source <- base_df2$source$name
+base_df1 <- data1$articles
+base_df1 <- select(base_df1, source, author, title, description, publishedAt)
+base_df1$source <- base_df1$source$name
+base_df38 <- data38$articles
+base_df38 <- select(base_df38, source, author, title, description, publishedAt)
+base_df38$source <- base_df38$source$name
+base_df37 <- data37$articles
+base_df37 <- select(base_df37, source, author, title, description, publishedAt)
+base_df37$source <- base_df37$source$name
+base_df35 <- data35$articles
+base_df35 <- select(base_df35, source, author, title, description, publishedAt)
+base_df35$source <- base_df35$source$name
+base_df34 <- data34$articles
+base_df34 <- select(base_df34, source, author, title, description, publishedAt)
+base_df34$source <- base_df34$source$name
+base_df33 <- data33$articles
+base_df33 <- select(base_df33, source, author, title, description, publishedAt)
+base_df33$source <- base_df33$source$name
+base_df32 <- data32$articles
+base_df32 <- select(base_df32, source, author, title, description, publishedAt)
+base_df32$source <- base_df32$source$name
+base_df36 <- data36$articles
+base_df36 <- select(base_df36, source, author, title, description, publishedAt)
+base_df36$source <- base_df36$source$name
+```
+
+```{r}
+# Combine all data frames into a list
+dataframes <- list(base_df1, base_df2, base_df3, base_df4, base_df5, base_df6, base_df7, base_df8, base_df9, base_df10,
+                   base_df11, base_df12, base_df13, base_df14, base_df15, base_df16, base_df17, base_df18, base_df19, base_df20,
+                   base_df21, base_df22, base_df23, base_df24, base_df25, base_df26, base_df27, base_df28, base_df29, base_df30,
+                   base_df31, base_df32, base_df33, base_df34, base_df35, base_df36, base_df37, base_df38, base_df36)
+```
+
+```{r}
+# Modify the 'source' column and select desired columns
+for (i in 1:length(dataframes)) {
+  dataframes[[i]] <- dataframes[[i]][, c("source", "author", "title", "description", "publishedAt")]
+  names(dataframes[[i]])[1] <- "source"  # Rename the first column to 'source'
+}
+```
+
+```{r}
+# Combine all data frames into one
+combined_df <- do.call(rbind, dataframes)
+head(combined_df, 20)
+# Export the combined_df to a CSV file
+write.csv(combined_df, file = "combined_df_final_project.csv", row.names = FALSE)
+```
+
+# Finished data frame, albeit small, that will allow analysis for sentiment.
